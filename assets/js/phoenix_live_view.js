@@ -175,9 +175,6 @@ let serializeForm = (form, callback) => {
     }
   })
 
-  if (!useBinary) {
-    callback((new URLSearchParams(formData)).toString())
-  } else {
     let values = {}
     let readerCount = 0
     formData.forEach((val, key) => {
@@ -187,15 +184,17 @@ let serializeForm = (form, callback) => {
         reader.onload = function(e) {
           values[key] = {file: e.target.result, filename: val.name, type: val.type}
           if(--readerCount === 0) {
-            callback(values, true)
+            callback(values, useBinary);
           }
         }
         reader.readAsArrayBuffer(val)
-        useBinary = true
       } else {
         values[key] = val
       }
     })
+
+  if (readerCount === 0) {
+    callback(values, useBinary);
   }
 }
 
@@ -523,6 +522,7 @@ export class LiveSocket {
       window.addEventListener(type, e => {
         let input = e.target
         if(type === "input" && input.type === "radio"){ return }
+        if(type === "input" && input.type === "file"){ return }
 
         let phxEvent = input.form && input.form.getAttribute(this.binding("change"))
         if(!phxEvent){ return }
@@ -646,6 +646,9 @@ let DOM = {
       },
       onBeforeElUpdated: function(fromEl, toEl) {
         // nested view handling
+        if (fromEl.nodeName === "INPUT" && toEl.nodeName === "INPUT" && fromEl.type === "file") {
+          return false;
+        }
         if(DOM.isPhxChild(toEl)){
           DOM.mergeAttrs(fromEl, toEl)
           return false
@@ -709,7 +712,8 @@ export class View {
     this.loader = this.el.nextElementSibling
     this.id = this.el.id
     this.view = this.el.getAttribute(PHX_VIEW)
-    this.channel = this.liveSocket.channel(`lv:${this.id}`, () => {
+    // TODO: remove this
+    this.channel = this.liveSocket.channel(`lv:1`, () => {
       return {session: this.getSession()}
     })
     this.loaderTimer = setTimeout(() => this.showLoader(), LOADER_TIMEOUT)
@@ -856,31 +860,33 @@ export class View {
   }
 
   pushInput(inputEl, phxEvent){
-    window.channel = this.channel;
     serializeForm(inputEl.form, (form, useBinary) => {
+      this.pushWithReply(phxEvent, {
+        type: "form",
+        event: phxEvent,
+        value: new URLSearchParams(form).toString()
+      })
+    })
+  }
+
+  pushFormSubmit(formEl, phxEvent, onReply){
+    serializeForm(formEl, (form, useBinary) => {
 
       if (useBinary) {
         this.pushWithReply("event", {
           type: "binary",
           event: phxEvent,
           value: form
-        })
+        }, onReply)
+        return;
       }
 
-      this.pushWithReply("event", {
+      this.pushWithReply(phxEvent, {
         type: "form",
         event: phxEvent,
-        value: form
-      })
+        value: new URLSearchParams(form).toString()
+      }, onReply)
     })
-  }
-
-  pushFormSubmit(formEl, phxEvent, onReply){
-    this.pushWithReply("event", {
-      type: "form",
-      event: phxEvent,
-      value: serializeForm(formEl)
-    }, onReply)
   }
 
   ownsElement(element){

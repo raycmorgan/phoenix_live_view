@@ -46,9 +46,13 @@ defmodule Phoenix.LiveView.Channel do
     {:stop, {:shutdown, :left}, state}
   end
 
-  def handle_info(%Message{topic: topic, event: "event"} = msg, %{topic: topic} = state) do
-    %{"value" => raw_val, "event" => event, "type" => type} = msg.payload
-    val = decode(type, raw_val)
+  def handle_info(%Message{topic: topic, event: event} = msg, %{topic: topic} = state) do
+    val =
+      case msg.payload do
+        %{"type" => type, "value" => raw_val} -> decode(type, raw_val)
+        _ -> msg.payload
+      end
+
     result = view_module(state).handle_event(event, val, state.socket)
     handle_result(state, {:event, msg.ref}, state.socket, result)
   end
