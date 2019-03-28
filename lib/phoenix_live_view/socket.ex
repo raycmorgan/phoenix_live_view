@@ -14,6 +14,7 @@ defmodule Phoenix.LiveView.Socket do
             stopped: nil,
             connected?: false
 
+  channel "lvu:*", Phoenix.LiveView.UploadChannel
   channel "lv:*", Phoenix.LiveView.Channel
 
   @doc """
