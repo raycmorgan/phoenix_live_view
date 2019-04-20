@@ -794,12 +794,16 @@ export class View {
   pushKey(keyElement, kind, event, phxEvent){
     let v = keyElement.value
 
-    if (!v) {      
-      if (event.metaKey) {
-        v = "meta-" + event.key
-      } else {
-        v = event.key
-      }
+    if (!v) {
+      let altKey = event.altKey && event.key != 'Alt'
+      let ctrlKey = event.ctrlKey && event.key != 'Control'
+      let metaKey = event.metaKey && event.key != 'Meta'
+      let shiftKey = event.shiftKey && event.key != 'Shift'
+
+      v = (altKey ? "alt-" : "") +
+          (ctrlKey ? "ctrl-" : "") +
+          (metaKey ? "meta-" : "") +
+          (shiftKey ? "shift-" : "") + event.key
     }
 
     this.pushWithReply("event", {
