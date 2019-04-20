@@ -792,6 +792,15 @@ export class View {
   }
 
   pushKey(keyElement, kind, event, phxEvent){
+    let val = keyElement.value;
+
+    if (!val) {
+      val = event.key;
+      if (event.metaKey) {
+        val += "meta-"
+      }
+    }
+
     this.pushWithReply("event", {
       type: kind,
       event: phxEvent,
