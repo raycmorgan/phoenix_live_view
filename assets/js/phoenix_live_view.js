@@ -800,10 +800,16 @@ export class View {
       let metaKey = event.metaKey && event.key != 'Meta'
       let shiftKey = event.shiftKey && event.key != 'Shift'
 
-      v = (altKey ? "alt-" : "") +
-          (ctrlKey ? "ctrl-" : "") +
-          (metaKey ? "meta-" : "") +
-          (shiftKey ? "shift-" : "") + event.key
+      v = [
+        (event.altKey ? "alt" : null),
+        (event.ctrlKey ? "ctrl" : null),
+        (event.metaKey ? "meta" : null),
+        (event.shiftKey ? "shift" : null)
+      ].filter((item) => item).join("-");
+
+      if (!['Alt', 'Control', 'Meta', 'Shift'].includes(event.key)) {
+        v = v + "-" + event.key
+      }
     }
 
     this.pushWithReply("event", {
